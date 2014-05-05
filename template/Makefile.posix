@@ -21,6 +21,8 @@ clean:
 	rm -f *.jlink
 	rm -f JLink.log
 	rm -f .gdbinit
+	rm -f softdevice.scr
+	rm -f erase.scr
 
 flash: all flash.jlink
 	$(JLINK) flash.jlink
@@ -76,5 +78,22 @@ startdebug: debug-gdbinit
 
 debug-gdbinit:
 	printf "target remote localhost:$(GDB_PORT_NUMBER)\nbreak main\n" > .gdbinit
+
+flash.openocd: all
+	openocd -f interface/stlink-v2.cfg -f target/nrf51_stlink.tcl -c "program $(HEX) verify reset"
+
+erase-all.openocd: erase.openocd_script
+	openocd -f interface/stlink-v2.cfg -f target/nrf51_stlink.tcl -c "script erase.scr"
+
+erase.openocd_script:
+	printf "init\nhalt\nnrf51 mass_erase\nshutdown" >erase.scr
+
+flash-softdevice.openocd: flash-softdevice_script.openocd
+	openocd -f interface/stlink-v2.cfg -f target/nrf51_stlink.tcl -c "script softdevice.scr"
+
+flash-softdevice_script.openocd:
+	printf " init\nhalt\nnrf51 mass_erase\nflash write_image  $(SOFTDEVICE)\nshutdown" >softdevice.scr
+
+
 
 .PHONY: flash flash-softdevice erase-all startdebug
